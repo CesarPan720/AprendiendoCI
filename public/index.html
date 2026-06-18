@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guía de CI con GitHub Actions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#2563EB',
+            'brand-dark': '#1E40AF',
+            'brand-light': '#DBEAFE',
+            'code-bg': '#0F172A',
+            'code-line': '#1E293B',
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 font-['Inter']">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-brand">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5 14.25 2.25 12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>
+        </span>
+        <span class="font-bold text-brand text-lg">CI Guide</span>
+        <span class="text-slate-400 text-sm hidden sm:inline">— GitHub Actions</span>
+      </div>
+      <div class="hidden md:flex items-center gap-1 text-sm">
+        <a href="#que-es" class="nav-link">¿Qué es CI?</a>
+        <a href="#anatomia" class="nav-link">Anatomía</a>
+        <a href="#triggers" class="nav-link">Triggers</a>
+        <a href="#jobs" class="nav-link">Jobs</a>
+        <a href="#playground" class="nav-link">Playground</a>
+        <a href="#plantillas" class="nav-link">Plantillas</a>
+      </div>
+      <button id="menu-btn" class="md:hidden p-2 rounded-lg hover:bg-slate-100">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white px-4 py-2 flex flex-col gap-1">
+      <a href="#que-es" class="nav-link-mobile">¿Qué es CI?</a>
+      <a href="#anatomia" class="nav-link-mobile">Anatomía</a>
+      <a href="#triggers" class="nav-link-mobile">Triggers</a>
+      <a href="#jobs" class="nav-link-mobile">Jobs</a>
+      <a href="#playground" class="nav-link-mobile">Playground</a>
+      <a href="#plantillas" class="nav-link-mobile">Plantillas</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="bg-gradient-to-br from-brand-dark via-brand to-blue-500 text-white py-16 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm mb-6 backdrop-blur">
+        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+        Guía interactiva · GitHub Actions
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
+        Integración Continua<br/>con GitHub Actions
+      </h1>
+      <p class="text-blue-100 text-lg max-w-2xl mx-auto mb-8">
+        Aprende a crear tu propio archivo <code class="bg-white/20 px-2 py-0.5 rounded font-mono text-sm">.yml</code> desde cero.
+        Definiciones claras, sintaxis explicada y plantillas listas para usar.
+      </p>
+      <div class="flex flex-wrap gap-3 justify-center">
+        <a href="#que-es" class="btn-hero-primary">Empezar a aprender →</a>
+        <a href="#plantillas" class="btn-hero-secondary">Ver plantillas</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROGRESS BAR -->
+  <div class="bg-white border-b border-slate-200 px-4 py-3">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+        <span>Tu progreso</span>
+        <span id="progress-text" class="font-semibold text-brand">0 / 5 secciones</span>
+      </div>
+      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-brand rounded-full transition-all duration-500" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-6xl mx-auto px-4 py-10 space-y-16">
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 1: ¿Qué es CI?                            -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="que-es" class="scroll-mt-20" data-section="1">
+      <div class="section-header">
+        <span class="section-number">01</span>
+        <h2 class="section-title">¿Qué es la Integración Continua?</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mt-6">
+        <div class="card">
+          <div class="mb-3 text-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          </div>
+          <h3 class="font-bold text-lg mb-2">Definición simple</h3>
+          <p class="text-slate-600 leading-relaxed">
+            La <strong>Integración Continua (CI)</strong> es una práctica de desarrollo donde
+            cada vez que un desarrollador sube código al repositorio, se ejecutan
+            automáticamente una serie de verificaciones: compilación, pruebas, análisis.
+          </p>
+        </div>
+        <div class="card">
+          <div class="mb-3 text-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.745 3.745 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.745 3.745 0 0 1 3.296-1.043A3.745 3.745 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.745 3.745 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
+          </div>
+          <h3 class="font-bold text-lg mb-2">¿Para qué sirve?</h3>
+          <p class="text-slate-600 leading-relaxed">
+            Detectar errores en <strong>minutos</strong>, no en semanas. Cuando varios
+            desarrolladores trabajan en el mismo proyecto, CI asegura que el código de
+            todos funcione junto antes de integrarlo a la rama principal.
+          </p>
+        </div>
+      </div>
+
+      <!-- Pipeline visual -->
+      <div class="mt-8">
+        <h3 class="font-semibold text-slate-700 mb-4">¿Cómo funciona el pipeline?</h3>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 overflow-x-auto">
+          <div class="flex items-center gap-2 min-w-max mx-auto justify-center">
+            <div class="pipeline-step bg-blue-50 border-blue-200 text-blue-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25"/></svg>
+              <span class="text-xs font-semibold mt-1">Commit</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step bg-amber-50 border-amber-200 text-amber-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75a4.5 4.5 0 0 1-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 1 1-3.586-3.585l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 0 1 6.336-4.486l-3.276 3.276a3.004 3.004 0 0 0 2.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852Z"/></svg>
+              <span class="text-xs font-semibold mt-1">Build</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step bg-purple-50 border-purple-200 text-purple-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
+              <span class="text-xs font-semibold mt-1">Pruebas</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step bg-teal-50 border-teal-200 text-teal-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+              <span class="text-xs font-semibold mt-1">Fusión</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step bg-green-50 border-green-200 text-green-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+              <span class="text-xs font-semibold mt-1">Feedback</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sin CI vs Con CI -->
+      <div class="grid md:grid-cols-2 gap-4 mt-6">
+        <div class="rounded-xl border border-red-200 bg-red-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="text-red-600"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            <h4 class="font-bold text-red-700">Sin CI</h4>
+          </div>
+          <ul class="space-y-2 text-sm text-red-800">
+            <li class="flex gap-2"><span>•</span> Integración al final del proyecto</li>
+            <li class="flex gap-2"><span>•</span> Bugs descubiertos tarde y costosos</li>
+            <li class="flex gap-2"><span>•</span> "En mi máquina funciona..."</li>
+            <li class="flex gap-2"><span>•</span> Miedo a hacer cambios grandes</li>
+          </ul>
+        </div>
+        <div class="rounded-xl border border-green-200 bg-green-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="text-green-600"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            <h4 class="font-bold text-green-700">Con CI</h4>
+          </div>
+          <ul class="space-y-2 text-sm text-green-800">
+            <li class="flex gap-2"><span>•</span> Integración continua, poco a poco</li>
+            <li class="flex gap-2"><span>•</span> Bugs detectados en minutos</li>
+            <li class="flex gap-2"><span>•</span> Entorno limpio y consistente</li>
+            <li class="flex gap-2"><span>•</span> Confianza para refactorizar</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mark-done-bar">
+        <button class="mark-done-btn" data-section="1">Marcar como visto ✓</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 2: Anatomía del .yml                       -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="anatomia" class="scroll-mt-20" data-section="2">
+      <div class="section-header">
+        <span class="section-number">02</span>
+        <h2 class="section-title">Anatomía del archivo .yml</h2>
+      </div>
+
+      <p class="text-slate-600 mt-4 leading-relaxed max-w-3xl">
+        El archivo <code class="inline-code">.yml</code> vive en
+        <code class="inline-code">.github/workflows/</code> dentro de tu repositorio.
+        GitHub lo detecta automáticamente. Todo archivo de CI tiene
+        <strong>4 secciones fundamentales</strong>:
+      </p>
+
+      <div class="mt-6 space-y-3" id="anatomy-accordion">
+
+        <div class="accordion-item" data-key="name">
+          <button class="accordion-btn">
+            <div class="flex items-center gap-3">
+              <code class="tag-code">name:</code>
+              <span class="font-medium">Nombre del workflow</span>
+            </div>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body hidden">
+            <p class="text-slate-600 mb-3">
+              Define el nombre que aparecerá en la pestaña <strong>Actions</strong> de GitHub.
+              Es solo descriptivo, no afecta el comportamiento.
+            </p>
+            <div class="code-block">
+              <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="name: CI - Mi Proyecto">Copiar</button></div>
+              <pre><code><span class="ck">name</span><span class="cp">:</span> <span class="cv">CI - Mi Proyecto</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item" data-key="on">
+          <button class="accordion-btn">
+            <div class="flex items-center gap-3">
+              <code class="tag-code">on:</code>
+              <span class="font-medium">Trigger — cuándo se activa</span>
+            </div>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body hidden">
+            <p class="text-slate-600 mb-3">
+              Define el <strong>evento</strong> que dispara el pipeline.
+              Puede ser un push, un pull request, un horario, o incluso un botón manual.
+            </p>
+            <div class="code-block">
+              <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]">Copiar</button></div>
+              <pre><code><span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">push</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development ]</span>
+  <span class="ck">pull_request</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main ]</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item" data-key="env">
+          <button class="accordion-btn">
+            <div class="flex items-center gap-3">
+              <code class="tag-code">env:</code>
+              <span class="font-medium">Variables de entorno globales</span>
+            </div>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body hidden">
+            <p class="text-slate-600 mb-3">
+              Variables accesibles desde cualquier job del pipeline.
+              Si necesitas cambiar un valor, lo cambias en un solo lugar.
+            </p>
+            <div class="code-block">
+              <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="env:
+  NODE_VERSION: '18'
+  APP_NAME: 'mi-app'">Copiar</button></div>
+              <pre><code><span class="ck">env</span><span class="cp">:</span>
+  <span class="ck">NODE_VERSION</span><span class="cp">:</span> <span class="cv">'18'</span>
+  <span class="ck">APP_NAME</span><span class="cp">:</span> <span class="cv">'mi-app'</span></code></pre>
+            </div>
+            <div class="tip-box flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+              <span>Para usar la variable: <code class="inline-code">${{ env.NODE_VERSION }}</code></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item" data-key="jobs">
+          <button class="accordion-btn">
+            <div class="flex items-center gap-3">
+              <code class="tag-code">jobs:</code>
+              <span class="font-medium">Tareas del pipeline</span>
+            </div>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body hidden">
+            <p class="text-slate-600 mb-3">
+              El corazón del archivo. Aquí defines <strong>qué hace</strong> el pipeline.
+              Cada job corre en su propia máquina virtual limpia de GitHub.
+              Por defecto, los jobs corren <strong>en paralelo</strong>.
+            </p>
+            <div class="code-block">
+              <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="jobs:
+  mi-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Primer paso
+        run: echo 'Hola mundo'">Copiar</button></div>
+              <pre><code><span class="ck">jobs</span><span class="cp">:</span>
+  <span class="ck">mi-job</span><span class="cp">:</span>                    <span class="cc"># nombre del job</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>  <span class="cc"># servidor gratuito de GitHub</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Primer paso</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">echo 'Hola mundo'</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="mark-done-bar">
+        <button class="mark-done-btn" data-section="2">Marcar como visto ✓</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 3: Triggers                               -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="triggers" class="scroll-mt-20" data-section="3">
+      <div class="section-header">
+        <span class="section-number">03</span>
+        <h2 class="section-title">Triggers: cuándo se activa el pipeline</h2>
+      </div>
+
+      <p class="text-slate-600 mt-4 leading-relaxed max-w-3xl">
+        El bloque <code class="inline-code">on:</code> es clave.
+        Haz clic en cada trigger para ver su sintaxis y cuándo usarlo.
+      </p>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6" id="trigger-cards">
+        <div class="trigger-card active" data-trigger="push">
+          <div class="mb-2 flex justify-center text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+          </div>
+          <div class="font-bold text-sm">Push</div>
+          <div class="text-xs text-slate-500 mt-1">Al subir código</div>
+        </div>
+        <div class="trigger-card" data-trigger="pr">
+          <div class="mb-2 flex justify-center text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/></svg>
+          </div>
+          <div class="font-bold text-sm">Pull Request</div>
+          <div class="text-xs text-slate-500 mt-1">Al abrir un PR</div>
+        </div>
+        <div class="trigger-card" data-trigger="manual">
+          <div class="mb-2 flex justify-center text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>
+          </div>
+          <div class="font-bold text-sm">Manual</div>
+          <div class="text-xs text-slate-500 mt-1">Botón en Actions</div>
+        </div>
+        <div class="trigger-card" data-trigger="schedule">
+          <div class="mb-2 flex justify-center text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+          </div>
+          <div class="font-bold text-sm">Programado</div>
+          <div class="text-xs text-slate-500 mt-1">Cada cierto tiempo</div>
+        </div>
+      </div>
+
+      <!-- Trigger detail panel -->
+      <div class="mt-4 bg-white rounded-2xl border border-slate-200 p-6" id="trigger-panel">
+        <div id="trigger-push">
+          <h4 class="font-bold text-slate-800 mb-1">Push — Al subir código</h4>
+          <p class="text-slate-600 text-sm mb-3">Se activa cada vez que alguien hace <code class="inline-code">git push</code>. Puedes limitarlo a ramas específicas o usar comodines con <code class="inline-code">*</code>.</p>
+          <div class="code-block">
+            <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="on:
+  push:
+    branches: [ main, development, feature/* ]
+    # feature/* cubre: feature/login, feature/pagos, etc.">Copiar</button></div>
+            <pre><code><span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">push</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development, feature/* ]</span>
+    <span class="cc"># feature/* cubre: feature/login, feature/pagos, etc.</span></code></pre>
+          </div>
+        </div>
+        <div id="trigger-pr" class="hidden">
+          <h4 class="font-bold text-slate-800 mb-1">Pull Request — Antes de mergear</h4>
+          <p class="text-slate-600 text-sm mb-3">Se activa cuando se abre o actualiza un Pull Request. Ideal para validar código antes de que entre a la rama principal.</p>
+          <div class="code-block">
+            <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="on:
+  pull_request:
+    branches: [ main, development ]">Copiar</button></div>
+            <pre><code><span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">pull_request</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development ]</span></code></pre>
+          </div>
+          <div class="tip-box flex items-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+            <span>Combina push + pull_request para máxima cobertura.</span>
+          </div>
+        </div>
+        <div id="trigger-manual" class="hidden">
+          <h4 class="font-bold text-slate-800 mb-1">Manual — workflow_dispatch</h4>
+          <p class="text-slate-600 text-sm mb-3">Agrega un botón "Run workflow" en la pestaña Actions. Útil para ejecutar el pipeline cuando tú quieras, sin hacer un commit.</p>
+          <div class="code-block">
+            <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="on:
+  workflow_dispatch:  # Aparece botón en Actions">Copiar</button></div>
+            <pre><code><span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">workflow_dispatch</span><span class="cp">:</span>  <span class="cc"># Aparece botón en Actions</span></code></pre>
+          </div>
+        </div>
+        <div id="trigger-schedule" class="hidden">
+          <h4 class="font-bold text-slate-800 mb-1">Programado — cron</h4>
+          <p class="text-slate-600 text-sm mb-3">Se activa automáticamente según un horario. Usa sintaxis cron (minuto, hora, día del mes, mes, día de la semana).</p>
+          <div class="code-block">
+            <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="on:
+  schedule:
+    - cron: '0 8 * * 1-5'  # Lunes a viernes a las 8am UTC">Copiar</button></div>
+            <pre><code><span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">schedule</span><span class="cp">:</span>
+    <span class="cd">- cron</span><span class="cp">:</span> <span class="cv">'0 8 * * 1-5'</span>  <span class="cc"># Lunes a viernes 8am UTC</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="mark-done-bar">
+        <button class="mark-done-btn" data-section="3">Marcar como visto ✓</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 4: Jobs y Steps                           -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="jobs" class="scroll-mt-20" data-section="4">
+      <div class="section-header">
+        <span class="section-number">04</span>
+        <h2 class="section-title">Jobs y Steps explicados</h2>
+      </div>
+
+      <div class="mt-6 grid md:grid-cols-3 gap-4">
+        <div class="card border-l-4 border-brand">
+          <h3 class="font-bold mb-2">runs-on:</h3>
+          <p class="text-sm text-slate-600">Sistema operativo del servidor de GitHub. <code class="inline-code">ubuntu-latest</code> es gratuito y el más común.</p>
+          <div class="mt-2 flex flex-wrap gap-1">
+            <span class="badge-blue">ubuntu-latest</span>
+            <span class="badge-gray">macos-latest</span>
+            <span class="badge-gray">windows-latest</span>
+          </div>
+        </div>
+        <div class="card border-l-4 border-purple-400">
+          <h3 class="font-bold mb-2">uses:</h3>
+          <p class="text-sm text-slate-600">Usa una acción preconstruida del Marketplace. Evita tener que escribir scripts largos.</p>
+          <div class="mt-2 flex flex-wrap gap-1">
+            <span class="badge-purple">checkout@v4</span>
+            <span class="badge-purple">setup-node@v4</span>
+          </div>
+        </div>
+        <div class="card border-l-4 border-green-400">
+          <h3 class="font-bold mb-2">run:</h3>
+          <p class="text-sm text-slate-600">Ejecuta comandos de terminal directamente. Usa <code class="inline-code">|</code> para múltiples líneas.</p>
+          <div class="mt-2 flex flex-wrap gap-1">
+            <span class="badge-green">npm install</span>
+            <span class="badge-green">npm test</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps interactivos -->
+      <div class="mt-8">
+        <h3 class="font-semibold text-slate-700 mb-4">Los steps más comunes explicados:</h3>
+        <div class="space-y-3" id="steps-list">
+
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Descargar el código</span>
+                <span class="badge-required">Siempre primero</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="- name: Checkout código
+  uses: actions/checkout@v4">Copiar</button></div>
+                <pre><code><span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+  <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>  <span class="cc"># descarga el repo en el servidor</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Instalar Node.js</span>
+                <span class="badge-node">Node.js</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="- name: Setup Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: '18'
+    cache: 'npm'">Copiar</button></div>
+                <pre><code><span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Node.js</span>
+  <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-node@v4</span>
+  <span class="ck">with</span><span class="cp">:</span>
+    <span class="ck">node-version</span><span class="cp">:</span> <span class="cv">'18'</span>
+    <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'npm'</span>  <span class="cc"># guarda caché para ser más rápido</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Instalar Flutter</span>
+                <span class="badge-dart">Flutter/Dart</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="- name: Instalar Flutter
+  uses: subosito/flutter-action@v2
+  with:
+    flutter-version: '3.19.0'
+    channel: 'stable'">Copiar</button></div>
+                <pre><code><span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar Flutter</span>
+  <span class="ck">uses</span><span class="cp">:</span> <span class="cv">subosito/flutter-action@v2</span>
+  <span class="ck">with</span><span class="cp">:</span>
+    <span class="ck">flutter-version</span><span class="cp">:</span> <span class="cv">'3.19.0'</span>
+    <span class="ck">channel</span><span class="cp">:</span> <span class="cv">'stable'</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Instalar Java (Spring Boot)</span>
+                <span class="badge-java">Java / Maven</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="- name: Setup Java
+  uses: actions/setup-java@v4
+  with:
+    distribution: 'temurin'
+    java-version: '17'
+    cache: 'maven'">Copiar</button></div>
+                <pre><code><span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Java</span>
+  <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-java@v4</span>
+  <span class="ck">with</span><span class="cp">:</span>
+    <span class="ck">distribution</span><span class="cp">:</span> <span class="cv">'temurin'</span>
+    <span class="ck">java-version</span><span class="cp">:</span> <span class="cv">'17'</span>
+    <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'maven'</span>  <span class="cc"># caché de dependencias Maven</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">5</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Guardar archivos generados (artefactos)</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="- name: Guardar build
+  uses: actions/upload-artifact@v4
+  with:
+    name: mi-build
+    path: ./dist
+    retention-days: 7">Copiar</button></div>
+                <pre><code><span class="cd">- name</span><span class="cp">:</span> <span class="cv">Guardar build</span>
+  <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/upload-artifact@v4</span>
+  <span class="ck">with</span><span class="cp">:</span>
+    <span class="ck">name</span><span class="cp">:</span> <span class="cv">mi-build</span>
+    <span class="ck">path</span><span class="cp">:</span> <span class="cv">./dist</span>          <span class="cc"># carpeta a guardar</span>
+    <span class="ck">retention-days</span><span class="cp">:</span> <span class="cv">7</span>  <span class="cc"># disponible 7 días</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">6</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-sm">Jobs que dependen de otros</span>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>YAML</span><button class="copy-btn" data-code="reporte:
+  needs: [ validar, build ]   # espera que ambos terminen
+  runs-on: ubuntu-latest
+  if: always()                # corre aunque fallen
+  steps:
+    - name: Mostrar resultados
+      run: |
+        echo 'Validar: ${{ needs.validar.result }}'
+        echo 'Build:   ${{ needs.build.result }}'">Copiar</button></div>
+                <pre><code><span class="ck">reporte</span><span class="cp">:</span>
+  <span class="ck">needs</span><span class="cp">:</span> <span class="cv">[ validar, build ]</span>   <span class="cc"># espera que ambos terminen</span>
+  <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+  <span class="ck">if</span><span class="cp">:</span> <span class="cv">always()</span>                <span class="cc"># corre aunque fallen</span>
+  <span class="ck">steps</span><span class="cp">:</span>
+    <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Mostrar resultados</span>
+      <span class="ck">run</span><span class="cp">:</span> <span class="cv">|</span>
+        <span class="cv">echo 'Validar: ${{ needs.validar.result }}'</span>
+        <span class="cv">echo 'Build:   ${{ needs.build.result }}'</span></code></pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="mark-done-bar">
+        <button class="mark-done-btn" data-section="4">Marcar como visto ✓</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 5: Playground                             -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="playground" class="scroll-mt-20" data-section="5">
+      <div class="section-header">
+        <span class="section-number">05</span>
+        <h2 class="section-title">Playground — Construye tu .yml</h2>
+      </div>
+
+      <p class="text-slate-600 mt-4 max-w-3xl">
+        Selecciona las opciones de tu proyecto y genera automáticamente un archivo
+        <code class="inline-code">.yml</code> base listo para copiar.
+      </p>
+
+      <div class="mt-6 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+          <h3 class="font-semibold text-slate-700 mb-4">Configura tu proyecto:</h3>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Tecnología</label>
+              <select id="pg-tech" class="playground-select">
+                <option value="node">Node.js</option>
+                <option value="flutter">Flutter / Dart</option>
+                <option value="java">Java / Spring Boot + Vite</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Rama principal</label>
+              <select id="pg-branch" class="playground-select">
+                <option value="main">main</option>
+                <option value="master">master</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">¿Incluir pull_request trigger?</label>
+              <select id="pg-pr" class="playground-select">
+                <option value="yes">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">¿Guardar artefacto del build?</label>
+              <select id="pg-artifact" class="playground-select">
+                <option value="yes">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+          <button id="pg-generate" class="mt-4 inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-brand-dark transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5 14.25 2.25 12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>
+            Generar .yml
+          </button>
+        </div>
+        <div class="relative">
+          <div class="code-block rounded-none border-0">
+            <div class="code-header">
+              <span id="pg-filename">ci.yml</span>
+              <button class="copy-btn" id="pg-copy-btn">Copiar todo</button>
+            </div>
+            <pre id="pg-output" class="overflow-x-auto text-sm leading-relaxed p-4 min-h-[200px]"><code class="text-slate-400 italic">← Selecciona opciones y haz clic en "Generar .yml"</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="mark-done-bar">
+        <button class="mark-done-btn" data-section="5">Marcar como visto ✓</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 6: Plantillas                             -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section id="plantillas" class="scroll-mt-20">
+      <div class="section-header">
+        <span class="section-number">06</span>
+        <h2 class="section-title">Plantillas completas</h2>
+      </div>
+
+      <div class="mt-6 flex gap-2 flex-wrap">
+        <button class="tab-btn active" data-tab="node">Node.js</button>
+        <button class="tab-btn" data-tab="flutter">Flutter / Dart</button>
+        <button class="tab-btn" data-tab="java">Java / Spring Boot</button>
+      </div>
+
+      <div id="tab-node" class="mt-4">
+        <div class="code-block">
+          <div class="code-header">
+            <span>ci.yml — Node.js</span>
+            <button class="copy-btn" id="copy-node">Copiar plantilla</button>
+          </div>
+          <pre id="template-node" class="overflow-x-auto text-sm leading-relaxed p-4"><code><span class="ck">name</span><span class="cp">:</span> <span class="cv">CI - Mi Proyecto Node</span>
+
+<span class="cc"># ── TRIGGER ──────────────────────────────────────</span>
+<span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">push</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development, feature/* ]</span>
+  <span class="ck">pull_request</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development ]</span>
+
+<span class="cc"># ── VARIABLE GLOBAL ──────────────────────────────</span>
+<span class="ck">env</span><span class="cp">:</span>
+  <span class="ck">NODE_VERSION</span><span class="cp">:</span> <span class="cv">'18'</span>
+
+<span class="ck">jobs</span><span class="cp">:</span>
+
+  <span class="cc"># JOB 1: Validar el backend</span>
+  <span class="ck">validate-backend</span><span class="cp">:</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">defaults</span><span class="cp">:</span>
+      <span class="ck">run</span><span class="cp">:</span>
+        <span class="ck">working-directory</span><span class="cp">:</span> <span class="cv">./backend</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Node.js</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-node@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">node-version</span><span class="cp">:</span> <span class="cv">${{ env.NODE_VERSION }}</span>
+          <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'npm'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar dependencias</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm install</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Ejecutar pruebas</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm test</span>
+
+  <span class="cc"># JOB 2: Build del frontend</span>
+  <span class="ck">build-frontend</span><span class="cp">:</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">defaults</span><span class="cp">:</span>
+      <span class="ck">run</span><span class="cp">:</span>
+        <span class="ck">working-directory</span><span class="cp">:</span> <span class="cv">./frontend</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Node.js</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-node@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">node-version</span><span class="cp">:</span> <span class="cv">${{ env.NODE_VERSION }}</span>
+          <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'npm'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar dependencias</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm install</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Build de producción</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm run build</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Guardar artefacto</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/upload-artifact@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">name</span><span class="cp">:</span> <span class="cv">frontend-dist</span>
+          <span class="ck">path</span><span class="cp">:</span> <span class="cv">./frontend/dist</span>
+          <span class="ck">retention-days</span><span class="cp">:</span> <span class="cv">7</span>
+
+  <span class="cc"># JOB 3: Reporte final</span>
+  <span class="ck">reporte</span><span class="cp">:</span>
+    <span class="ck">needs</span><span class="cp">:</span> <span class="cv">[ validate-backend, build-frontend ]</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">if</span><span class="cp">:</span> <span class="cv">always()</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Resultado del CI</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">|</span>
+          <span class="cv">echo "Backend:  ${{ needs.validate-backend.result }}"</span>
+          <span class="cv">echo "Frontend: ${{ needs.build-frontend.result }}"</span></code></pre>
+        </div>
+      </div>
+
+      <div id="tab-flutter" class="mt-4 hidden">
+        <div class="code-block">
+          <div class="code-header">
+            <span>ci.yml — Flutter / Dart</span>
+            <button class="copy-btn" id="copy-flutter">Copiar plantilla</button>
+          </div>
+          <pre id="template-flutter" class="overflow-x-auto text-sm leading-relaxed p-4"><code><span class="ck">name</span><span class="cp">:</span> <span class="cv">CI - Mi App Flutter</span>
+
+<span class="cc"># ── TRIGGER ──────────────────────────────────────</span>
+<span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">push</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development, feature/* ]</span>
+  <span class="ck">pull_request</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development ]</span>
+
+<span class="cc"># ── VARIABLE GLOBAL ──────────────────────────────</span>
+<span class="ck">env</span><span class="cp">:</span>
+  <span class="ck">FLUTTER_VERSION</span><span class="cp">:</span> <span class="cv">'3.19.0'</span>
+
+<span class="ck">jobs</span><span class="cp">:</span>
+
+  <span class="cc"># JOB 1: Análisis y pruebas</span>
+  <span class="ck">analyze-and-test</span><span class="cp">:</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar Flutter</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">subosito/flutter-action@v2</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">flutter-version</span><span class="cp">:</span> <span class="cv">${{ env.FLUTTER_VERSION }}</span>
+          <span class="ck">channel</span><span class="cp">:</span> <span class="cv">'stable'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Obtener dependencias</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">flutter pub get</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Análisis estático</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">flutter analyze</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Ejecutar pruebas</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">flutter test</span>
+
+  <span class="cc"># JOB 2: Build Android (APK debug)</span>
+  <span class="ck">build-android</span><span class="cp">:</span>
+    <span class="ck">needs</span><span class="cp">:</span> <span class="cv">[ analyze-and-test ]</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar Java</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-java@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">distribution</span><span class="cp">:</span> <span class="cv">'temurin'</span>
+          <span class="ck">java-version</span><span class="cp">:</span> <span class="cv">'17'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar Flutter</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">subosito/flutter-action@v2</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">flutter-version</span><span class="cp">:</span> <span class="cv">${{ env.FLUTTER_VERSION }}</span>
+          <span class="ck">channel</span><span class="cp">:</span> <span class="cv">'stable'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Obtener dependencias</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">flutter pub get</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Build APK debug</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">flutter build apk --debug</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Guardar APK</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/upload-artifact@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">name</span><span class="cp">:</span> <span class="cv">app-debug.apk</span>
+          <span class="ck">path</span><span class="cp">:</span> <span class="cv">build/app/outputs/flutter-apk/app-debug.apk</span>
+          <span class="ck">retention-days</span><span class="cp">:</span> <span class="cv">7</span>
+
+  <span class="cc"># JOB 3: Reporte final</span>
+  <span class="ck">reporte</span><span class="cp">:</span>
+    <span class="ck">needs</span><span class="cp">:</span> <span class="cv">[ analyze-and-test, build-android ]</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">if</span><span class="cp">:</span> <span class="cv">always()</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Resultado del CI</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">|</span>
+          <span class="cv">echo "Pruebas: ${{ needs.analyze-and-test.result }}"</span>
+          <span class="cv">echo "Build:   ${{ needs.build-android.result }}"</span></code></pre>
+        </div>
+      </div>
+
+      <div id="tab-java" class="mt-4 hidden">
+        <div class="code-block">
+          <div class="code-header">
+            <span>ci.yml — Java / Spring Boot + Vite</span>
+            <button class="copy-btn" id="copy-java">Copiar plantilla</button>
+          </div>
+          <pre id="template-java" class="overflow-x-auto text-sm leading-relaxed p-4"><code><span class="ck">name</span><span class="cp">:</span> <span class="cv">CI - Mi App Java / Spring Boot</span>
+
+<span class="cc"># ── TRIGGER ──────────────────────────────────────</span>
+<span class="ck">on</span><span class="cp">:</span>
+  <span class="ck">push</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development, feature/* ]</span>
+  <span class="ck">pull_request</span><span class="cp">:</span>
+    <span class="ck">branches</span><span class="cp">:</span> <span class="cv">[ main, development ]</span>
+
+<span class="cc"># ── VARIABLES GLOBALES ────────────────────────────</span>
+<span class="ck">env</span><span class="cp">:</span>
+  <span class="ck">JAVA_VERSION</span><span class="cp">:</span> <span class="cv">'17'</span>
+  <span class="ck">NODE_VERSION</span><span class="cp">:</span> <span class="cv">'18'</span>
+
+<span class="ck">jobs</span><span class="cp">:</span>
+
+  <span class="cc"># JOB 1: Pruebas del backend Spring Boot</span>
+  <span class="ck">test-backend</span><span class="cp">:</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">defaults</span><span class="cp">:</span>
+      <span class="ck">run</span><span class="cp">:</span>
+        <span class="ck">working-directory</span><span class="cp">:</span> <span class="cv">./backend</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Java</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-java@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">distribution</span><span class="cp">:</span> <span class="cv">'temurin'</span>
+          <span class="ck">java-version</span><span class="cp">:</span> <span class="cv">${{ env.JAVA_VERSION }}</span>
+          <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'maven'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Ejecutar pruebas</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">mvn test</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Empaquetar aplicación</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">mvn package -DskipTests</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Guardar JAR</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/upload-artifact@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">name</span><span class="cp">:</span> <span class="cv">app.jar</span>
+          <span class="ck">path</span><span class="cp">:</span> <span class="cv">backend/target/*.jar</span>
+          <span class="ck">retention-days</span><span class="cp">:</span> <span class="cv">7</span>
+
+  <span class="cc"># JOB 2: Build del frontend (Vite)</span>
+  <span class="ck">build-frontend</span><span class="cp">:</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">defaults</span><span class="cp">:</span>
+      <span class="ck">run</span><span class="cp">:</span>
+        <span class="ck">working-directory</span><span class="cp">:</span> <span class="cv">./frontend</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Checkout código</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/checkout@v4</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Setup Node.js</span>
+        <span class="ck">uses</span><span class="cp">:</span> <span class="cv">actions/setup-node@v4</span>
+        <span class="ck">with</span><span class="cp">:</span>
+          <span class="ck">node-version</span><span class="cp">:</span> <span class="cv">${{ env.NODE_VERSION }}</span>
+          <span class="ck">cache</span><span class="cp">:</span> <span class="cv">'npm'</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Instalar dependencias</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm install</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Build de producción (Vite)</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">npm run build</span>
+
+  <span class="cc"># JOB 3: Reporte final</span>
+  <span class="ck">reporte</span><span class="cp">:</span>
+    <span class="ck">needs</span><span class="cp">:</span> <span class="cv">[ test-backend, build-frontend ]</span>
+    <span class="ck">runs-on</span><span class="cp">:</span> <span class="cv">ubuntu-latest</span>
+    <span class="ck">if</span><span class="cp">:</span> <span class="cv">always()</span>
+    <span class="ck">steps</span><span class="cp">:</span>
+      <span class="cd">- name</span><span class="cp">:</span> <span class="cv">Resultado del CI</span>
+        <span class="ck">run</span><span class="cp">:</span> <span class="cv">|</span>
+          <span class="cv">echo "Backend:  ${{ needs.test-backend.result }}"</span>
+          <span class="cv">echo "Frontend: ${{ needs.build-frontend.result }}"</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-800 text-slate-400 text-sm py-8 px-4 mt-16">
+    <div class="max-w-6xl mx-auto text-center space-y-2">
+      <p class="text-white font-semibold">Guía de CI con GitHub Actions</p>
+      <p>Documentación oficial: <a href="https://docs.github.com/actions" target="_blank" class="text-blue-400 hover:underline">docs.github.com/actions</a></p>
+      <p>Marketplace de acciones: <a href="https://github.com/marketplace?type=actions" target="_blank" class="text-blue-400 hover:underline">github.com/marketplace</a></p>
+    </div>
+  </footer>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none">
+    ✓ Copiado al portapapeles
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
